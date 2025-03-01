@@ -6,6 +6,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import LabelEncoder
 import joblib
 import psutil
 import warnings
@@ -80,7 +81,6 @@ def plot_distribution(df, colunms: list, type: str):
         for i in range(len(colunms)):
             sns.countplot(df, x=colunms[i], palette="rocket", ax=axes[i//3, i%3])
             
-            
     if type == 'num':
         plt.suptitle('Distribution of Numerical Features', fontsize=16, y=1.02)
     if type == 'cat':
@@ -88,7 +88,24 @@ def plot_distribution(df, colunms: list, type: str):
         
     plt.tight_layout()
     plt.show()
-    
+
+def plot_heat(df, num_columns, cat_columns):
+    data_encoded = pd.DataFrame()
+    # 分类变量使用标签编码
+    label_encoder = LabelEncoder()
+    for i in cat_columns:
+        data_encoded[i] = label_encoder.fit_transform(df[i])
+    # 数值型变量
+    scaler = StandardScaler()
+    data_encoded[num_columns] = scaler.fit_transform(df[num_columns])
+    # 计算相关性矩阵
+    heatmap_data = data_encoded.corr()
+    # 绘制热图
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(heatmap_data, annot=True, fmt=".2f", cmap='coolwarm', linewidths=0.5)
+    plt.title('Heatmap of Categorical and Numerical Variables')
+    plt.show()
+
 def preprocess_num(df: pd.DataFrame, columns_num: list):
     '''
     连续变量的处理 (数据标准化)\n
@@ -140,8 +157,8 @@ def impute_num(df, columns_X, columns_y, model):
         df.loc[df[columns_y].isna(), columns_y] = model.predict(df[columns_X][df[columns_y].isna()])
     return df
 
-
 def submit(model_name : str,
+           y_name : str,
            test : pd.DataFrame):
     ''' 
     保存提交（预测）的数据\n
@@ -156,11 +173,21 @@ def submit(model_name : str,
 
     # 保存提交
     submission = pd.read_csv('../submission/submission.csv')
-    submission['Survived'] = y_pred.astype(int)
+    submission[y_name] = y_pred.astype(int)
     submission.to_csv(f'../submission/{model_name}.csv', index=None)
-    
+
+
+def save_model(model, name):
+    '''保存模型'''
+    joblib.dump(model, f'../models/{name}.pkl')
+    print(f'{name} is successfully saved!')
+    return True
+
 
 def memory():
+    '''
+    查看内存使用情况
+    '''
     mem = psutil.virtual_memory()
     print(f"可用内存: {mem.available / 1024 / 1024:.2f} MB")
     print(f"内存使用率: {mem.percent}%")
