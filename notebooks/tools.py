@@ -129,11 +129,12 @@ def preprocess_cat(df: pd.DataFrame, columns_cat: list):
     '''
     encoder = OneHotEncoder(sparse=False)
     df_cat = pd.DataFrame(encoder.fit_transform(df[columns_cat]),
-                         columns=encoder.get_feature_names_out(columns_cat))
+                         columns=encoder.get_feature_names_out(columns_cat)).astype('category')
     df = pd.concat([df, df_cat], axis=1)
     columns_cat_processed = encoder.get_feature_names_out(columns_cat)
     print(list(columns_cat_processed))
     return df
+
 
 def impute_num(df, columns_X, columns_y, model):
     '''
@@ -183,14 +184,17 @@ def save_model(model, name):
     print(f'{name} is successfully saved!')
     return True
 
-
-def memory():
+def memory(df=None):
     '''
     查看内存使用情况
+    df: 传入一个数据框，检测数据框的大小，若没有，则打印电脑的内存
     '''
-    mem = psutil.virtual_memory()
-    print(f"可用内存: {mem.available / 1024 / 1024:.2f} MB")
-    print(f"内存使用率: {mem.percent}%")
+    if not df.empty:
+        print(f'内存使用：{df.memory_usage().sum() / 1024**2 : .2f} MB')
+    else:
+        mem = psutil.virtual_memory()
+        print(f"可用内存: {mem.available / 1024 / 1024:.2f} MB")
+        print(f"内存使用率: {mem.percent}%")
     
 
 # memory()

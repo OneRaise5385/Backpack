@@ -1,32 +1,40 @@
 import pandas as pd
 from sklearn.model_selection import GridSearchCV
+from sklearn.neighbors import KNeighborsRegressor
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.naive_bayes import BernoulliNB
 from sklearn.svm import SVC
+from sklearn.svm import SVR
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import AdaBoostClassifier
 import lightgbm as lgb
 import xgboost as xgb
 
 
-def best_knn_clf(X : pd.DataFrame,
+def best_knn(X : pd.DataFrame,
              y : pd.DataFrame, 
              scoring='accuracy',
+             task = 'clf',
              metrics = 'binary'):
     '''
     ！！！！有点问题，暂时先不用管
     K近邻算法参数寻优\n
     X：输入模型的特征\n
     y：输入模型的标签\n
-    scoring：模型的评价标准，可取的值为 ['accuracy', 'precision', 'recall', 'f1', 'roc_auc']\n 
+    scoring：模型的评价标准
+        分类任务可取的值：['accuracy', 'precision', 'recall', 'f1', 'roc_auc']
+        回归任务可取的值：['neg_mean_absolute_error', 'neg_root_mean_squared_error', 'r2']
+    task: 任务类型\n
+        clf: 分类任务
+        reg: 回归任务
     metrics:
         numeric: 数值型数据的距离
         binary: 二值型数据的距离
-        text: 文本或高维稀疏数据的距离
-        
+        text: 文本或高维稀疏数据的距离\n
     return: 输出最佳的模型
     '''
     # 定义参数网格
@@ -43,26 +51,35 @@ def best_knn_clf(X : pd.DataFrame,
                   'leaf_size' : [10, 20, 30, 40, 50],
                   'p' : [1, 2],
                   'metric' : metric}
-    model = KNeighborsClassifier()
-
+    # 任务类型
+    if task == 'clf':
+        model = KNeighborsClassifier()
+    elif task == 'reg':
+        model = KNeighborsRegressor()
+        
     # 使用GridSearchCV进行超参数调优
     grid_search = GridSearchCV(model, param_grid, scoring=scoring, 
                                n_jobs=-1, cv=5)
     grid_search.fit(X, y)
+    
+    # 打印结果
     print(f'KNN Best Params: ',grid_search.best_params_)
     print(f'KNN Best Score: ', grid_search.best_score_)
     return grid_search.best_estimator_
 
 
-def best_bayes_clf(X : pd.DataFrame,
-                   y : pd.DataFrame, 
-                   scoring = 'accuracy',
-                   model_name = 'GaussianNB'):
+def best_bayes(X : pd.DataFrame,
+               y : pd.DataFrame, 
+               scoring = 'accuracy',
+               task = 'clf',
+               model_name = 'GaussianNB'):
     '''
     ***朴素贝叶斯*** 分类器模型寻优\n
     X：输入模型的特征\n
     y：输入模型的标签\n
-    scoring：模型的评价标准，可取的值为 ['accuracy', 'precision', 'recall', 'f1', 'roc_auc']\n
+    scoring：模型的评价标准
+        分类任务可取的值：['accuracy', 'precision', 'recall', 'f1', 'roc_auc']
+        回归任务可取的值：['neg_mean_absolute_error', 'neg_root_mean_squared_error', 'r2']
     model: 
         GaussianNB：假设特征服从高斯分布（正态分布）。
         MultinomialNB：适用于离散特征（如文本分类中的词频或 TF-IDF 值）。
@@ -96,60 +113,90 @@ def best_bayes_clf(X : pd.DataFrame,
     return grid_search.best_estimator_
 
 
-def best_svm_clf(X : pd.DataFrame,
+def best_svm(X : pd.DataFrame,
              y : pd.DataFrame, 
              scoring='accuracy',
+             task = 'clf',
              kernel = 'rbf'):
     '''
     支持向量机参数寻优\n
     X：输入模型的特征\n
     y：输入模型的标签\n
+    scoring：模型的评价标准, 更多评价指标见[sklearn文档](https://scikit-learn.org.cn/view/93.html)\n
+        分类任务可取的值：['accuracy', 'precision', 'recall', 'f1', 'roc_auc']
+        回归任务可取的值：['neg_mean_absolute_error', 'neg_root_mean_squared_error', 'r2']
+    task: 任务类型\n
+        clf: 分类任务
+        reg: 回归任务
     kernel：选择使用哪种和函数，取值为 ['rbf', 'linear', 'poly', 'sigmoid']\n
-    scoring：模型的评价标准，可取的值为 ['accuracy', 'precision', 'recall', 'f1', 'roc_auc']
     return: 输出最佳的模型
     '''
     # 定义参数网格
-    param_grid = {'C': [0.025, 0.05, 0.1, 0.5, 1, 10],
+    param_grid = {
+                # 'C': [0.025, 0.05, 0.1, 0.5, 1, 10],
                 'kernel': [kernel],
-                'degree': [2, 3, 4],
-                'gamma': ['scale', 'auto'],
-                'coef0': [0, 0.1, 0.5, 1]}
-    model = SVC()
+                # 'degree': [2, 3, 4],
+                # 'gamma': ['scale', 'auto'],
+                # 'coef0': [0, 0.1, 0.5, 1]
+                }
+    if task == 'clf':
+        model = SVC()
+    elif task == 'reg':
+        model = SVR()
 
     # 使用GridSearchCV进行超参数调优
     grid_search = GridSearchCV(model, param_grid, scoring=scoring, 
-                               n_jobs=-1, cv=5)
+                               n_jobs=-1, cv=5, verbose=2)
     grid_search.fit(X, y)
     print(f'svc_{kernel} Best Params: ',grid_search.best_params_)
     print(f'svc_{kernel} Best Score: ', grid_search.best_score_)
     return grid_search.best_estimator_
 
 
-def best_decisiontree_clf(X : pd.DataFrame,
-                          y : pd.DataFrame, 
-                          scoring='accuracy'):
+def best_decisiontree(X : pd.DataFrame,
+                      y : pd.DataFrame, 
+                      task = 'clf',
+                      scoring='accuracy'):
     '''
     ***决策树*** 分类器模型寻优\n
     X：输入模型的特征\n
     y：输入模型的标签\n
-    scoring：模型的评价标准，可取的值为 ['accuracy', 'precision', 'recall', 'f1', 'roc_auc']\n
+    scoring：模型的评价标准
+        分类任务可取的值：['accuracy', 'precision', 'recall', 'f1', 'roc_auc']
+        回归任务可取的值：['neg_mean_absolute_error', 'neg_root_mean_squared_error', 'r2']
+    task: 任务类型\n
+        clf: 分类任务
+        reg: 回归任务
     return: 输出最佳的决策树模型
     '''
-    # 参数网格
-    param_grid = {"criterion": ["gini", "entropy", 'log_loss'],  # 分裂标准
-                  "splitter": ["best", "random"],    # 分裂策略
-                  "max_depth": [None, 3, 5, 10],     # 树的最大深度
-                  "min_samples_split": [2, 5, 10],   # 节点分裂的最小样本数
-                  "min_samples_leaf": [1, 2, 5],     # 叶子节点的最小样本数
-                  "min_weight_fraction_leaf": [0.0],  # 叶子节点的最小权重比例 (样本不平衡时用)
-                  "max_features": [None, "sqrt", "log2", 0.5],  # 分裂时考虑的最大特征数
-                  "max_leaf_nodes": [None, 10, 20],  # 最大叶子节点数
-                  "min_impurity_decrease": [0.0, 0.01, 0.1],  # 最小不纯度减少量
-                  "class_weight": [None, "balanced"],  # 类别权重
-                  "ccp_alpha": [0.0, 0.01, 0.1]}     # 代价复杂度剪枝参数
     # 模型
-    model = DecisionTreeClassifier(random_state=42)
-    
+    if task == 'clf':
+        model = DecisionTreeClassifier(random_state=42)
+        # 参数网格
+        param_grid = {"criterion": ["gini", "entropy", 'log_loss'],  # 分裂标准
+                      "splitter": ["best", "random"],    # 分裂策略
+                      "max_depth": [None, 3, 5, 10],     # 树的最大深度
+                      "min_samples_split": [2, 5, 10],   # 节点分裂的最小样本数
+                      "min_samples_leaf": [1, 2, 5],     # 叶子节点的最小样本数
+                      "min_weight_fraction_leaf": [0.0],  # 叶子节点的最小权重比例 (样本不平衡时用)
+                      "max_features": [None, "sqrt", "log2", 0.5],  # 分裂时考虑的最大特征数
+                      "max_leaf_nodes": [None, 10, 20],  # 最大叶子节点数
+                      "min_impurity_decrease": [0.0, 0.01, 0.1],  # 最小不纯度减少量
+                      "class_weight": [None, "balanced"],  # 类别权重
+                      "ccp_alpha": [0.0, 0.01, 0.1]}     # 代价复杂度剪枝参数
+    elif task == 'reg':
+        model = DecisionTreeRegressor(random_state=42)
+        # 参数网格
+        param_grid = {"criterion": ["squared_error", "friedman_mse", 'absolute_error', 'poisson'],  # 分裂标准
+                      "splitter": ["best", "random"],    # 分裂策略
+                      "max_depth": [None, 3, 5, 10],     # 树的最大深度
+                      "min_samples_split": [2, 5, 10],   # 节点分裂的最小样本数
+                      "min_samples_leaf": [1, 2, 5],     # 叶子节点的最小样本数
+                      "min_weight_fraction_leaf": [0.0],  # 叶子节点的最小权重比例 (样本不平衡时用)
+                      "max_features": [None, "sqrt", "log2", 0.5],  # 分裂时考虑的最大特征数
+                      "max_leaf_nodes": [None, 10, 20],  # 最大叶子节点数
+                      "min_impurity_decrease": [0.0, 0.01, 0.1],  # 最小不纯度减少量
+                      "ccp_alpha": [0.0, 0.01, 0.1]}     # 代价复杂度剪枝参数
     # 使用GridSearchCV进行超参数调优
     grid_search = GridSearchCV(model, param_grid, scoring=scoring, 
                                n_jobs=-1, cv=5, verbose=2)
