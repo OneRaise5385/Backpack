@@ -101,7 +101,7 @@ def plot_heat(df, num_columns, cat_columns):
     # 计算相关性矩阵
     heatmap_data = data_encoded.corr()
     # 绘制热图
-    plt.figure(figsize=(10, 8), dpi=300)
+    plt.figure(figsize=(10, 8))
     sns.heatmap(heatmap_data, annot=True, fmt=".2f", cmap='coolwarm', linewidths=0.5)
     plt.title('Heatmap of Categorical and Numerical Variables')
     plt.show()

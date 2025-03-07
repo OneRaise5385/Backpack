@@ -353,14 +353,14 @@ def best_lightgbm(X : pd.DataFrame,
                       'colsample_bytree' : [0.8, 1],  # [0.8, 1]
                       'reg_alpha': [0, 0.1],  # [0, 0.1]
                       'reg_lambda': [0, 0.1]}  # [0, 0.1]
-        model = lgb.LGBMRegressor(boosting_type=boosting_type, 
+        model = lgb.DaskLGBMRegressor(boosting_type=boosting_type, 
                                       learning_rate=0.01,
-                                      n_estimators=20,  # 1000
+                                      n_estimators=200,  # 1000
                                       n_jobs=-1)
     
     # 使用GridSearchCV进行超参数调优
     grid_search = GridSearchCV(model, param_grid, scoring=scoring, 
-                               n_jobs=-1, cv=5, verbose=10,error_score='raise')
+                               n_jobs=-1, cv=5)
     grid_search.fit(X, y)
     print(f'LightGBM Best Params: ',grid_search.best_params_)
     print(f'LightGBM Best Score: ', grid_search.best_score_)
