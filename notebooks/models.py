@@ -354,9 +354,9 @@ def best_lightgbm(X : pd.DataFrame,
                       'reg_alpha': [0, 0.1],  # [0, 0.1]
                       'reg_lambda': [0, 0.1]}  # [0, 0.1]
         model = lgb.LGBMRegressor(boosting_type=boosting_type, 
-                                      learning_rate=0.01,
-                                      n_estimators=20,  # 1000
-                                      n_jobs=-1)
+                                  learning_rate=0.01,
+                                  n_estimators=20,  # 1000
+                                  n_jobs=-1)
     
     # 使用GridSearchCV进行超参数调优
     grid_search = GridSearchCV(model, param_grid, scoring=scoring, 
